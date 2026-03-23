@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - lovable-dev
+      - feature/*
 
 jobs:
   build:
