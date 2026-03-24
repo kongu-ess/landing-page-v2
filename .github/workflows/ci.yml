@@ -2,9 +2,9 @@ name: CI — Build & Test
 
 on:
   pull_request:
-    branches: [ "main", "release/*" ]
+    branches: [ "lovable-dev", "release/**", "main" ]
   push:
-    branches: [ "main", "release/*" ]
+    branches: [ "lovable-dev", "release/**", "main" ]
 
 jobs:
   build:
@@ -13,31 +13,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ── 1. Build & Unit Tests ─────────────────────────────────────────────
-      # Replace with your actual unit test command.
-      # The reporter should produce:
-      #   - unit-tests.html   (e.g. jest-html-reporter, pytest-html)
-      #   - coverage/index.html (e.g. nyc / istanbul, pytest-cov --cov-report=html)
-      - name: Run Build and Unit Tests
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      # ── 1. Lint ───────────────────────────────────────────────────────────
+      - name: Lint
+        run: npm run lint
+
+      # ── 2. Unit Tests (Vitest — HTML output) ─────────────────────────────
+      - name: Run Unit Tests
+        run: npm test
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.ref_name }}
+          path: test-results/
+          retention-days: 30
+
+      - name: Set test metrics
         run: |
-          echo "Running build and unit tests..."
-          # Example for Node.js / Jest:
-          #   npm ci
-          #   npx jest --coverage \
-          #     --reporters=default --reporters=jest-html-reporter \
-          #     --coverageReporters=html
-          # Example for Python:
-          #   pip install pytest pytest-html pytest-cov
-          #   pytest --html=unit-tests.html --cov --cov-report=html:coverage
-          #
-          # For the template, we generate placeholder HTML so the pipeline works:
-          echo "<html><body><h1>Unit Test Report</h1><p>145/145 passed</p></body></html>" > unit-tests.html
-          mkdir -p coverage
-          echo "<html><body><h1>Coverage Report</h1><p>88.5% line coverage</p></body></html>" > coverage/index.html
-          echo "UNIT_PASSED=145" >> $GITHUB_ENV
-          echo "UNIT_TOTAL=145"  >> $GITHUB_ENV
-          echo "UNIT_FAILED=0"   >> $GITHUB_ENV
-          echo "COVERAGE=88.5"   >> $GITHUB_ENV
+          echo "UNIT_PASSED=0" >> $GITHUB_ENV
+          echo "UNIT_TOTAL=0"  >> $GITHUB_ENV
+          echo "UNIT_FAILED=0" >> $GITHUB_ENV
+          echo "COVERAGE=0"    >> $GITHUB_ENV
 
       # ── 2. Integration Tests ──────────────────────────────────────────────
       # Replace with your actual integration test command.
@@ -214,9 +220,9 @@ jobs:
           SHA_SHORT=$(git rev-parse --short HEAD)
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
 
-          if [[ "$BRANCH_NAME" == "main" ]]; then
+          if [[ "$BRANCH_NAME" == "lovable-dev" ]]; then
             NEW_TAG="dev-${SHA_SHORT}"
-            echo "Branch is main. Generating DEV tag: $NEW_TAG"
+            echo "Branch is lovable-dev. Generating DEV tag: $NEW_TAG"
           elif [[ "$BRANCH_NAME" == release/* ]]; then
             VERSION=${BRANCH_NAME#release/}
             NEW_TAG="${VERSION}-rc-${SHA_SHORT}"
