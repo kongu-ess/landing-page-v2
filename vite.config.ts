@@ -21,9 +21,10 @@ export default defineConfig(({ mode }) => ({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     passWithNoTests: true,
-    reporters: ["verbose", "html"],
+    reporters: ["verbose", "html", "json"],
     outputFile: {
       html: "./test-results/index.html",
+      json: "./test-results/results.json",
     },
   },
 }));
